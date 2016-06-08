@@ -3,7 +3,7 @@ import path from 'path'
 import yargs from 'yargs'
 import request from 'request'
 import del from 'del'
-import unzip from 'unzip'
+import AdmZip from 'adm-zip'
 
 const argv = yargs
     .usage('Usage: $0 <command> [options]')
@@ -13,6 +13,7 @@ const argv = yargs
 
 let stickerId     = argv.stickerId
 let downloadPath  = path.dirname(__dirname) + '/download'
+let unzipPath     = path.dirname(__dirname) + '/unzip'
 let stickerZipUrl = {
     static   : `http://dl.stickershop.line.naver.jp/products/0/0/1/${stickerId}/android/stickers.zip`,
     animation: `http://dl.stickershop.line.naver.jp/products/0/0/1/${stickerId}/android/stickerpack.zip`
@@ -78,6 +79,13 @@ async function analystStickerType() {
     return data;
 }
 
+function unzipStickerZip(stickerId, zipPath) {
+    let admZip      = new AdmZip(zipPath);
+    let unzipFolder = `${unzipPath}/${stickerId}`
+
+    admZip.extractAllTo(unzipFolder, true)
+}
+
 async function main() {
     try {
         let zipPath = "";
@@ -88,10 +96,10 @@ async function main() {
         }else if (zipType.static === true) {
             zipPath = await downloadStaticStickerZip(stickerId)
         }else{
-            throw new Error("Can not found matched static or animation zip file");
+            throw new Error("Can not found matched static or animation zip file")
         }
 
-
+        unzipStickerZip(stickerId, zipPath)
     }catch(e) {
         console.log(e)
     }

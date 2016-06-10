@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import child_process from 'child_process'
 import yargs from 'yargs'
 import request from 'request'
 import del from 'del'
@@ -25,14 +26,14 @@ function downloadStaticStickerZip(stickerId) {
         let zipPath = `${downloadPath}/${stickerId}.zip`
 
         // Remove exists file first
-        del.sync(zipPath);
+        del.sync(zipPath)
 
         // Download
         let stream = request(zipUrl).pipe(fs.createWriteStream(zipPath))
 
         stream.on('finish', () => resolve(zipPath))
         stream.on('error', (error) => reject(error))
-    });
+    })
 }
 
 function downloadAnimationStickerZip(stickerId) {
@@ -41,14 +42,14 @@ function downloadAnimationStickerZip(stickerId) {
         let zipPath = `${downloadPath}/${stickerId}.zip`
 
         // Remove exists file first
-        del.sync(zipPath);
+        del.sync(zipPath)
 
         // Download
         let stream = request(zipUrl).pipe(fs.createWriteStream(zipPath))
 
         stream.on('finish', () => resolve(zipPath))
         stream.on('error', (error) => reject(error))
-    });
+    })
 }
 
 async function analystStickerType() {
@@ -74,22 +75,37 @@ async function analystStickerType() {
             static   : statusCodes[0] === 200,
             animation: statusCodes[1] === 200,
         }
-    });
+    })
 
-    return data;
+    return data
 }
 
 function unzipStickerZip(stickerId, zipPath) {
-    let admZip      = new AdmZip(zipPath);
+    let admZip      = new AdmZip(zipPath)
     let unzipFolder = `${unzipPath}/${stickerId}`
 
+    del.sync(unzipFolder)
+
     admZip.extractAllTo(unzipFolder, true)
+
+    return unzipFolder
+}
+
+function convertApngToGif(unzipPath) {
+    var animationPath = `${unzipPath}/animation`
+
+    fs.readdir(animationPath, (err, files) => {
+        files.forEach(file => {
+            let pngFile  = file.replace(".png", ".gif")
+            let apng2gif = child_process.spawn('./bin/apng2gif', [`${animationPath}/${file}`, `${animationPath}/${pngFile}`])
+        })
+    })
 }
 
 async function main() {
     try {
-        let zipPath = "";
-        let zipType = await analystStickerType();
+        let zipPath = ""
+        let zipType = await analystStickerType()
 
         if (zipType.animation === true) {
             zipPath = await downloadAnimationStickerZip(stickerId)
@@ -99,7 +115,11 @@ async function main() {
             throw new Error("Can not found matched static or animation zip file")
         }
 
-        unzipStickerZip(stickerId, zipPath)
+        let unzipPath = unzipStickerZip(stickerId, zipPath)
+
+        if (zipType.animation === true) {
+            convertApngToGif(unzipPath)
+        }
     }catch(e) {
         console.log(e)
     }

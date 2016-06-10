@@ -1,4 +1,5 @@
 /download
 /node_modules
+/unzip
 
 /npm-debug.log

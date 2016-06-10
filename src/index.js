@@ -125,6 +125,19 @@ function convertApngToGif(unzipPath) {
     })
 }
 
+function removeUnusedSticker(unzipPath) {
+    del([
+        `${unzipPath}/*_key.png`,
+        `${unzipPath}/productInfo.meta`,
+        `${unzipPath}/tab_on.png`,
+        `${unzipPath}/tab_off.png`,
+    ]).then(paths => {
+        paths.forEach(path => {
+            logger.info(`Remove unused file ${path}`)
+        })
+    })
+}
+
 async function main() {
     try {
         let zipPath = ""
@@ -143,6 +156,8 @@ async function main() {
         if (zipType.animation === true) {
             convertApngToGif(unzipPath)
         }
+
+        removeUnusedSticker(unzipPath)
     }catch(e) {
         console.log(e)
     }

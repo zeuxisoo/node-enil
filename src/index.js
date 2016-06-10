@@ -1,6 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 import child_process from 'child_process'
+import winston from 'winston'
+import colors from 'colors'
 import yargs from 'yargs'
 import request from 'request'
 import del from 'del'
@@ -19,6 +21,17 @@ let stickerZipUrl = {
     static   : `http://dl.stickershop.line.naver.jp/products/0/0/1/${stickerId}/android/stickers.zip`,
     animation: `http://dl.stickershop.line.naver.jp/products/0/0/1/${stickerId}/android/stickerpack.zip`
 }
+
+let logger = new (winston.Logger)({
+    transports: [
+        new (winston.transports.Console)({
+            colorize: true
+        }),
+        // new (winston.transports.File)({
+        //     filename: path.dirname(__dirname) + '/debug.log'
+        // })
+    ]
+});
 
 function downloadStaticStickerZip(stickerId) {
     return new Promise((resolve, reject) => {
@@ -96,8 +109,18 @@ function convertApngToGif(unzipPath) {
 
     fs.readdir(animationPath, (err, files) => {
         files.forEach(file => {
-            let pngFile  = file.replace(".png", ".gif")
-            let apng2gif = child_process.spawn('./bin/apng2gif', [`${animationPath}/${file}`, `${animationPath}/${pngFile}`])
+            let fromFile = `${animationPath}/${file}`
+            let toFile   = `${animationPath}/${file}`.replace(".png", ".gif")
+
+            let apng2gif = child_process.spawn('./bin/apng2gif', [fromFile, toFile])
+
+            apng2gif.stdout.on('data', data => {
+                logger.info(`Convert ${fromFile} ... ... ... %s`, colors.green('OK'))
+            })
+
+            apng2gif.stderr.on('data', data => {
+                logger.info(`Convert ${fromFile} ... ... ... %s`, colors.red('Faield'))
+            })
         })
     })
 }
